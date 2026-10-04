@@ -400,6 +400,7 @@ const DashboardView = () => {
   // --- DETAILED S vs B ANALYSIS ---
   const weeklyHours = metrics.calculatedWeeklyHours || 0;
   const sysScore = activeBusiness?.biTriangle?.systems || 0;
+  const timeFilterLabel = ({ '24h': 'Today', '1w': 'This week', '1m': 'This month', '1y': 'This year', all: 'All time', month: 'This month', year: 'This year', '7d': 'Past 7 days' } as Record<string, string>)[timeFilter] || 'Selected period';
 
 
   return (
@@ -419,13 +420,19 @@ const DashboardView = () => {
       <div className="flex flex-col sm:flex-row justify-start items-start gap-3 sm:gap-4 -ml-1">
          <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto no-scrollbar" data-tour="dashboard-time-toggles">
              <div className="flex bg-white dark:bg-slate-800 rounded-lg p-1 border border-gray-200 dark:border-white/10 min-w-max shadow-sm">
-                {(['24h', '1w', '1m', '1y', 'all'] as const).map(t => (
+                {([
+                  { value: '24h', label: 'Today' },
+                  { value: '1w', label: 'Week' },
+                  { value: '1m', label: 'Month' },
+                  { value: '1y', label: 'Year' },
+                  { value: 'all', label: 'All time' },
+                ] as const).map(({ value, label }) => (
                     <button 
-                        key={t}
-                        onClick={() => setTimeFilter(t)}
-                        className={`px-3 py-1.5 text-[11px] sm:text-xs font-bold rounded-md capitalize transition-all ${timeFilter === t ? 'bg-primary text-white shadow-sm' : 'text-gray-500 hover:text-primary'}`}
+                        key={value}
+                        onClick={() => setTimeFilter(value)}
+                        className={`px-3 py-1.5 text-[11px] sm:text-xs font-bold rounded-md transition-all ${timeFilter === value ? 'bg-primary text-white shadow-sm' : 'text-gray-500 hover:text-primary'}`}
                     >
-                        {t}
+                        {label}
                     </button>
                 ))}
              </div>
@@ -476,7 +483,7 @@ const DashboardView = () => {
           <StatCard 
             title="Total Income" 
             value={metrics.totalIncome} 
-            subValue={timeFilter === 'all' ? "All Time" : `Past ${timeFilter}`}
+            subValue={timeFilterLabel}
             note="Total Cash Inflow"
             trend="up"
             icon={ArrowUp} 
@@ -523,7 +530,7 @@ const DashboardView = () => {
           <StatCard 
             title="Total Expenses" 
             value={metrics.totalExpenses} 
-            subValue={timeFilter === 'all' ? "All Time" : `Past ${timeFilter}`}
+            subValue={timeFilterLabel}
             note="Total Cash Outflow"
             trend="down"
             icon={ArrowDown} 

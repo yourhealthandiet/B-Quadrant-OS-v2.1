@@ -33,7 +33,8 @@ import {
   Network,
   Search,
   X,
-  Globe
+  Globe,
+  Download
 } from 'lucide-react';
 import { AppData, DEFAULT_DATA, CURRENCY_SYMBOLS, Entry, Asset, Notification, calculateBusinessValuation, Investment, AllocationCategory, convertCurrency, PendingEntry, TeamMember, DEMO_BUSINESS, UserProfile, calculateStructuralVariables, DistributionMeta, getSystemTimeString, buildEntryTimestamp, formatEntryTime, Goal, RecurringIncomeRecord, AccessLevel, BusinessEntity } from './types';
 import * as AIService from './services/aiService';
@@ -80,6 +81,17 @@ class RouteErrorBoundary extends React.Component<{children: React.ReactNode}, {h
     return this.props.children;
   }
 }
+
+type DeferredInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+};
+
+const detectStandaloneMode = () => {
+  if (typeof window === 'undefined') return false;
+  const iosStandalone = typeof navigator !== 'undefined' && 'standalone' in navigator && Boolean((navigator as any).standalone);
+  return Boolean(window.matchMedia?.('(display-mode: standalone)').matches || iosStandalone);
+};
 
 // Context Definition
 export const AppContext = React.createContext<{
@@ -319,6 +331,10 @@ function App() {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isSearchOpen, setSearchOpen] = useState(false);
   const [isMobileToolsOpen, setMobileToolsOpen] = useState(false);
+  const [installPromptEvent, setInstallPromptEvent] = useState<DeferredInstallPromptEvent | null>(null);
+  const [canInstallApp, setCanInstallApp] = useState(false);
+  const [isInstallingApp, setIsInstallingApp] = useState(false);
+  const [isStandaloneMode, setIsStandaloneMode] = useState(detectStandaloneMode);
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
@@ -328,9 +344,43 @@ function App() {
     window.addEventListener('keydown', handleShortcut);
     return () => window.removeEventListener('keydown', handleShortcut);
   }, []);
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      const deferred = event as DeferredInstallPromptEvent;
+      setInstallPromptEvent(deferred);
+      setCanInstallApp(!detectStandaloneMode());
+    };
+
+    const handleAppInstalled = () => {
+      setInstallPromptEvent(null);
+      setCanInstallApp(false);
+      setIsStandaloneMode(true);
+    };
+
+    const handleDisplayModeChange = () => {
+      const standalone = detectStandaloneMode();
+      setIsStandaloneMode(standalone);
+      if (standalone) {
+        setCanInstallApp(false);
+      }
+    };
+
+    const media = window.matchMedia?.('(display-mode: standalone)');
+    handleDisplayModeChange();
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt as EventListener);
+    window.addEventListener('appinstalled', handleAppInstalled);
+    media?.addEventListener?.('change', handleDisplayModeChange);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt as EventListener);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+      media?.removeEventListener?.('change', handleDisplayModeChange);
+    };
+  }, []);
   const [isProfileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [timeFilter, setTimeFilter] = useState<'all' | 'year' | 'month' | '24h' | '7d' | '1w' | '1m' | '1y'>('month');
+  const [timeFilter, setTimeFilter] = useState<'all' | 'year' | 'month' | '24h' | '7d' | '1w' | '1m' | '1y'>('1m');
   const [isTourOpen, setTourOpen] = useState(false);
   const [seenTips, setSeenTips] = useState<string[]>(() => {
      try { return JSON.parse(localStorage.getItem('bquadrant_seen_tips') || '[]'); } catch { return []; }
@@ -654,6 +704,21 @@ function App() {
           navigator.clipboard.writeText(val.toString());
           // Optional: Add simple toast here if you have a toast system
       }, 0, "Copy");
+  };
+
+  const handleInstallApp = async () => {
+      if (!installPromptEvent || isInstallingApp) return;
+      try {
+          setIsInstallingApp(true);
+          await installPromptEvent.prompt();
+          const choice = await installPromptEvent.userChoice.catch(() => null);
+          if (choice?.outcome === 'accepted') {
+              setCanInstallApp(false);
+              setInstallPromptEvent(null);
+          }
+      } finally {
+          setIsInstallingApp(false);
+      }
   };
 
   // --- PERSISTENCE & MULTI-DEVICE SYNC ENGINE ---
@@ -3992,6 +4057,12 @@ const processedDistsRef = useRef<Set<string>>(new Set());
               <button type="button" onClick={redoAction} disabled={redoStack.length===0} aria-label="Redo last action" className="rounded-lg border border-slate-200 dark:border-slate-700 p-2 disabled:opacity-30"><Redo2 size={16}/></button>
               <button type="button" onClick={togglePrivacyMode} aria-label={isPrivacyMode ? 'Show balances' : 'Hide balances'} className="rounded-lg border border-slate-200 dark:border-slate-700 p-2">{isPrivacyMode ? <EyeOff size={16}/> : <Eye size={16}/>}</button>
               <button type="button" onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')} aria-label="Change theme" className="rounded-lg border border-slate-200 dark:border-slate-700 p-2">{theme === 'light' ? <Moon size={16}/> : <Sun size={16}/>}</button>
+              {canInstallApp && !isStandaloneMode && (
+                <button type="button" onClick={handleInstallApp} disabled={isInstallingApp} aria-label="Install app" className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 text-xs font-semibold text-indigo-700 disabled:opacity-60 dark:border-indigo-800 dark:bg-indigo-500/10 dark:text-indigo-200">
+                  <Download size={14} />
+                  {isInstallingApp ? 'Installing...' : 'Install app'}
+                </button>
+              )}
               <span className="ml-auto text-xs font-semibold text-slate-500 dark:text-slate-400">{timeStr}</span>
             </div>}
             {/* Bottom Stack: Actions & Settings Utilities + Date/Time */}
@@ -4049,6 +4120,19 @@ const processedDistsRef = useRef<Set<string>>(new Set());
                       {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
                     </button>
                   </div>
+
+                  {canInstallApp && !isStandaloneMode && (
+                    <button
+                      type="button"
+                      onClick={handleInstallApp}
+                      disabled={isInstallingApp}
+                      className="inline-flex items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 transition-colors hover:border-indigo-400 disabled:opacity-60 dark:border-indigo-800 dark:bg-indigo-500/10 dark:text-indigo-200"
+                      title="Install B-Quadrant OS"
+                    >
+                      <Download size={14} />
+                      {isInstallingApp ? 'Installing...' : 'Install app'}
+                    </button>
+                  )}
                </div>
 
                {/* Right: Date/Time */}
@@ -4059,7 +4143,7 @@ const processedDistsRef = useRef<Set<string>>(new Set());
             </div>
             </div>
           </header>
-          <div className="p-3 sm:p-6 max-w-7xl mx-auto w-full flex-1 pb-24 lg:pb-6">{renderView()}</div>
+          <div className="p-3 sm:p-6 max-w-7xl mx-auto w-full flex-1 pb-28 lg:pb-6">{renderView()}</div>
         </main>
         {isSidebarOpen && (<div className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm lg:hidden" onClick={() => setSidebarOpen(false)} />)}
         <nav aria-label="Mobile quick navigation" className={`fixed bottom-0 left-0 right-0 z-30 ${isSidebarOpen ? 'hidden' : 'grid'} lg:hidden grid-cols-5 items-center bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200 dark:border-slate-700 pb-[env(safe-area-inset-bottom)] shadow-[0_-10px_30px_rgba(0,0,0,0.07)]`}>
@@ -4081,7 +4165,7 @@ const processedDistsRef = useRef<Set<string>>(new Set());
       <button
           onClick={openGeneralCalculator}
           data-tour="calculator"
-          className={`fixed bottom-24 lg:bottom-6 right-5 z-40 p-4 bg-primary text-white rounded-full shadow-2xl hover:scale-110 transition-all duration-300 flex items-center justify-center ${showFloatingCalculator ? 'translate-y-0 opacity-80 hover:opacity-100' : 'translate-y-20 opacity-0 pointer-events-none'}`}
+          className={`fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom))] lg:bottom-6 right-4 z-40 p-3 lg:p-4 bg-primary text-white rounded-full shadow-2xl hover:scale-110 transition-all duration-300 flex items-center justify-center ${showFloatingCalculator ? 'translate-y-0 opacity-80 hover:opacity-100' : 'translate-y-20 opacity-0 pointer-events-none'}`}
           title="Open Calculator"
       >
           <CalculatorIcon size={24} />

@@ -2,9 +2,17 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="https://lucide.dev/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>B-Quadrant OS</title>
+    <meta name="description" content="B-Quadrant OS is a simple financial operating system for tracking cash flow, business money, assets, and growth from B to I." />
+    <meta name="theme-color" content="#03113d" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="B-Quadrant OS" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/brand/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/brand/icon-192.png" />
+    <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png" />
     <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -69,11 +77,11 @@
         display: none;
       }
       .no-scrollbar {
-        -ms-overflow-style: none;  /* IE and Edge */
-        scrollbar-width: none;  /* Firefox */
+        -ms-overflow-style: none;
+        scrollbar-width: none;
       }
     </style>
-</head>
+  </head>
   <body class="transition-colors duration-300">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
