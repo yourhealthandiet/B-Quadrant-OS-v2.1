@@ -9,6 +9,7 @@ import {
   PieChart, 
   Bot, 
   Settings, 
+  Settings2,
   Menu, 
   Moon, 
   Sun,
