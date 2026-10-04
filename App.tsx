@@ -317,6 +317,7 @@ function App() {
 
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isSearchOpen, setSearchOpen] = useState(false);
+  const [isMobileToolsOpen, setMobileToolsOpen] = useState(false);
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
@@ -3856,8 +3857,8 @@ const processedDistsRef = useRef<Set<string>>(new Set());
               <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
                 <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-1.5 -ml-1 sm:p-2 sm:-ml-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 shrink-0"><Menu size={18} className="sm:w-5 sm:h-5" /></button>
                 <div className="min-w-0 flex items-center gap-1.5">
-                  {currentView !== 'dashboard' && currentView !== 'claim' && currentView !== 'import' && <><button type="button" onClick={() => navigate('dashboard')} className="text-xs sm:text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500">Overview</button><ChevronDown size={12} className="-rotate-90 text-slate-400"/></>}
-                  <h2 className="text-sm sm:text-lg lg:text-xl font-semibold whitespace-nowrap truncate text-gray-900 dark:text-gray-100 tracking-tight">{currentView === 'dashboard' ? 'Overview' : getPageTitle()}</h2>
+                  {currentView !== 'dashboard' && currentView !== 'claim' && currentView !== 'import' && <span className="hidden lg:inline-flex items-center gap-1.5"><button type="button" onClick={() => navigate('dashboard')} className="text-xs sm:text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500">Home</button><ChevronDown size={12} className="-rotate-90 text-slate-400"/></span>}
+                  <h2 className="text-sm sm:text-lg lg:text-xl font-semibold whitespace-nowrap truncate text-gray-900 dark:text-gray-100 tracking-tight">{currentView === 'dashboard' ? 'B-Quadrant' : getPageTitle()}</h2>
                 </div>
               </div>
               
@@ -3975,8 +3976,25 @@ const processedDistsRef = useRef<Set<string>>(new Set());
               </div>
             </div>
 
+            {/* On phones, keep essential controls visible and put occasional tools behind one button. */}
+            <div className="lg:hidden flex items-center justify-between gap-2 border-t border-slate-100 dark:border-slate-800 pt-2">
+              <StickyCurrencyDropdown
+                activeCurrencyCode={activeCurrencyCode}
+                activeProfileId={activeProfileId}
+                onSwitchCurrency={switchCurrency}
+                onOpenConverter={() => openCurrencyConverter((val) => {}, 100, activeCurrencyCode, "Done")}
+              />
+              <button type="button" aria-expanded={isMobileToolsOpen} aria-controls="mobile-utility-tools" onClick={() => setMobileToolsOpen(o => !o)} className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 px-3 text-xs font-semibold text-slate-600 dark:text-slate-300" aria-label="Show workspace tools"><Settings2 size={15}/> Tools <ChevronDown size={14} className={`transition-transform ${isMobileToolsOpen ? 'rotate-180' : ''}`}/></button>
+            </div>
+            {isMobileToolsOpen && <div id="mobile-utility-tools" className="lg:hidden flex flex-wrap items-center gap-2 border-t border-slate-100 dark:border-slate-800 pt-2" aria-label="Workspace tools">
+              <button type="button" onClick={undoAction} disabled={undoStack.length===0} aria-label="Undo last action" className="rounded-lg border border-slate-200 dark:border-slate-700 p-2 disabled:opacity-30"><Undo2 size={16}/></button>
+              <button type="button" onClick={redoAction} disabled={redoStack.length===0} aria-label="Redo last action" className="rounded-lg border border-slate-200 dark:border-slate-700 p-2 disabled:opacity-30"><Redo2 size={16}/></button>
+              <button type="button" onClick={togglePrivacyMode} aria-label={isPrivacyMode ? 'Show balances' : 'Hide balances'} className="rounded-lg border border-slate-200 dark:border-slate-700 p-2">{isPrivacyMode ? <EyeOff size={16}/> : <Eye size={16}/>}</button>
+              <button type="button" onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')} aria-label="Change theme" className="rounded-lg border border-slate-200 dark:border-slate-700 p-2">{theme === 'light' ? <Moon size={16}/> : <Sun size={16}/>}</button>
+              <span className="ml-auto text-xs font-semibold text-slate-500 dark:text-slate-400">{timeStr}</span>
+            </div>}
             {/* Bottom Stack: Actions & Settings Utilities + Date/Time */}
-            <div className="flex justify-between items-center w-full pt-2 border-t border-gray-100 dark:border-gray-800 gap-1.5 sm:gap-2">
+            <div className="hidden lg:flex justify-between items-center w-full pt-2 border-t border-gray-100 dark:border-gray-800 gap-1.5 sm:gap-2">
                {/* Left: Tools - Fits perfectly on mobile without hiding theme/privacy toggles */}
                <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                   <StickyCurrencyDropdown
