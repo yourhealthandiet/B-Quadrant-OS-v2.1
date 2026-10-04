@@ -1,0 +1,6 @@
+{
+  "name": "B-Quadrant OS v2",
+  "description": "A structured financial operating system that helps business owners track cashflow and calculate true business value - Version 2 Multi entry Release.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
