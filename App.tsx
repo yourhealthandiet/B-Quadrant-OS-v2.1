@@ -4043,7 +4043,7 @@ const processedDistsRef = useRef<Set<string>>(new Set());
           <div className="p-3 sm:p-6 max-w-7xl mx-auto w-full flex-1 pb-24 lg:pb-6">{renderView()}</div>
         </main>
         {isSidebarOpen && (<div className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm lg:hidden" onClick={() => setSidebarOpen(false)} />)}
-        <nav aria-label="Mobile quick navigation" className="fixed bottom-0 left-0 right-0 z-30 lg:hidden ${isSidebarOpen ? 'hidden' : 'grid'} grid-cols-5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200 dark:border-slate-700 pb-[env(safe-area-inset-bottom)] shadow-[0_-10px_30px_rgba(0,0,0,0.07)]">
+        <nav aria-label="Mobile quick navigation" className={`fixed bottom-0 left-0 right-0 z-30 ${isSidebarOpen ? 'hidden' : 'grid'} lg:hidden grid-cols-5 items-center bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200 dark:border-slate-700 pb-[env(safe-area-inset-bottom)] shadow-[0_-10px_30px_rgba(0,0,0,0.07)]`}>
           {[
             {id:'dashboard',title:'Overview',icon:LayoutDashboard},
             {id:'income_statement:income',title:'Income',icon:ArrowDownRight},
