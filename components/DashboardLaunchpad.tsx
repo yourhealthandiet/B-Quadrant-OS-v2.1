@@ -1,118 +1,123 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import {
-  ArrowDownLeft, ArrowRight, ArrowRightLeft, ArrowUpRight, Bell, BookOpen,
-  Bot, BarChart3, ChevronRight, HelpCircle, FileSpreadsheet,
-  Landmark, Network, ShieldCheck, Target, Settings2, PieChart, BellRing
+  ArrowDownLeft, ArrowRight, ArrowRightLeft, ArrowUpRight, Bell,
+  BarChart3, ChevronRight, FileSpreadsheet, Landmark, Network,
+  ShieldCheck, Target, Settings2, PieChart, BookOpen, Bot,
+  Wallet, LayoutDashboard, CircleHelp, ChevronDown
 } from 'lucide-react';
 import { AppContext, MoneyDisplay } from '../App';
 
-type Destination = { title: string; description: string; route: string; icon: React.ElementType; restricted?: boolean };
+type Destination = { title: string; route: string; icon: React.ElementType; restricted?: boolean };
 
-/** Overview is a navigation layer. Financial calculations remain with the existing engines. */
+/** Compact, action-first overview; advanced calculations remain in the detailed dashboard. */
 export default function DashboardLaunchpad({ onOpenDetails }: { onOpenDetails: (target?: 'approvals') => void }) {
   const ctx = useContext(AppContext)!;
-  const { activeProfileId, data, effectiveRole, filteredData, metrics, symbol, timeFilter, navigate } = ctx;
-  const business = activeProfileId !== 'personal';
-  const name = business ? data.businesses.find(b => b.id === activeProfileId)?.name || 'Business' : 'Personal';
+  const { activeProfileId, data, effectiveRole, filteredData, metrics, symbol, timeFilter, setTimeFilter, navigate } = ctx;
+  const [allFeaturesOpen, setAllFeaturesOpen] = useState(false);
+  const name = activeProfileId === 'personal' ? 'Personal workspace' : data.businesses.find(b => b.id === activeProfileId)?.name || 'Business workspace';
   const financeStaff = effectiveRole === 'finance_staff';
   const viewer = effectiveRole === 'viewer';
   const pending = (effectiveRole === 'admin' || effectiveRole === 'partner') ? (filteredData.pendingEntries || []).length : 0;
   const alerts = filteredData.notifications.filter(n => !n.read && n.profileId === activeProfileId).length;
   const goals = filteredData.goals.length;
-  const mainActions: Destination[] = [
-    { title: 'Record income', description: 'Add money received and classify it correctly.', route: 'income_statement:income', icon: ArrowDownLeft },
-    { title: 'Record expense', description: 'Capture spending before you forget it.', route: 'income_statement:expense', icon: ArrowUpRight },
-    { title: 'Move money', description: 'Record transfers between your accounts or entities.', route: 'income_statement:transfer', icon: ArrowRightLeft },
+  const period = ({ month: 'This month', '1m': 'Past month', '1w': 'Past week', '7d': 'Past 7 days', '24h': 'Past day', year: 'This year', '1y': 'Past year', all: 'All time' } as Record<string, string>)[timeFilter] || 'Selected period';
+
+  const quickActions: Destination[] = [
+    { title: 'Add income', route: 'income_statement:income', icon: ArrowDownLeft },
+    { title: 'Add expense', route: 'income_statement:expense', icon: ArrowUpRight },
+    { title: 'Transfer', route: 'income_statement:transfer', icon: ArrowRightLeft },
   ];
-  const manage: Destination[] = [
-    { title: 'Income & expenses', description: 'Review entries, recurring items and financial records.', route: 'income_statement', icon: FileSpreadsheet },
-    { title: 'Assets & liabilities', description: 'Manage what you own and what you owe.', route: 'balance_sheet', icon: Landmark, restricted: financeStaff },
-    { title: 'Goals', description: 'View milestones and track what you are working toward.', route: 'goals', icon: Target, restricted: financeStaff },
-    { title: 'Ownership', description: 'Understand how entities and owners connect.', route: 'ownership', icon: Network },
-    { title: 'Analytics', description: 'Examine trends and performance in more detail.', route: 'analytics', icon: BarChart3, restricted: financeStaff },
-    { title: 'Financial guidance', description: 'Explore suggestions from your advisor.', route: 'ai', icon: Bot, restricted: financeStaff },
-    { title: 'ESBI quadrant', description: 'Understand the roles behind your income.', route: 'quadrant', icon: PieChart, restricted: financeStaff },
-    { title: 'Notifications', description: 'Review important system updates.', route: 'notifications', icon: BellRing },
-    { title: 'Settings & backup', description: 'Manage your profile, data and exports.', route: 'settings', icon: Settings2, restricted: !!ctx.simulatedUser },
+  const primary: Destination[] = [
+    { title: 'Goals', route: 'goals', icon: Target, restricted: financeStaff },
+    { title: 'Assets', route: 'balance_sheet', icon: Landmark, restricted: financeStaff },
+    { title: 'Analytics', route: 'analytics', icon: BarChart3, restricted: financeStaff },
   ];
-  const shortCut = (item: Destination, prominent = false) => {
+  const secondary: Destination[] = [
+    { title: 'Transactions', route: 'income_statement', icon: FileSpreadsheet },
+    { title: 'Ownership', route: 'ownership', icon: Network },
+    { title: 'ESBI quadrant', route: 'quadrant', icon: PieChart, restricted: financeStaff },
+    { title: 'Learning', route: 'learning', icon: BookOpen, restricted: financeStaff },
+    { title: 'AI advisor', route: 'ai', icon: Bot, restricted: financeStaff },
+    { title: 'Notifications', route: 'notifications', icon: Bell },
+    { title: 'Settings & backup', route: 'settings', icon: Settings2, restricted: !!ctx.simulatedUser },
+  ];
+  const tile = (item: Destination) => {
     const Icon = item.icon;
     return (
-      <button
-        key={item.route}
-        type="button"
-        disabled={item.restricted || (viewer && prominent)}
-        onClick={() => navigate(item.route)}
-        className={`group w-full min-w-0 text-left rounded-2xl border p-4 sm:p-5 transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:opacity-45 disabled:cursor-not-allowed ${prominent ? 'border-indigo-200 dark:border-indigo-700/70 bg-indigo-50/80 dark:bg-indigo-500/10 hover:-translate-y-0.5 hover:shadow-md' : 'border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-800/70 hover:border-indigo-300 dark:hover:border-indigo-600 hover:shadow-md'}`}
-      >
-        <div className="flex items-start justify-between gap-3">
-          <span className={`inline-flex items-center justify-center rounded-xl w-10 h-10 ${prominent ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-indigo-700 dark:text-indigo-300'}`}><Icon size={19}/></span>
-          <ArrowRight size={17} className="mt-1 text-slate-400 group-hover:text-indigo-500 group-hover:translate-x-1 transition-transform" aria-hidden="true"/>
-        </div>
-        <h3 className="mt-4 text-sm sm:text-base font-bold text-slate-900 dark:text-white">{item.title}</h3>
-        <p className="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{item.description}</p>
+      <button key={item.route} type="button" onClick={() => navigate(item.route)}
+        className="flex min-w-0 items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-3 py-3 text-left transition-colors hover:border-indigo-400 hover:bg-indigo-50/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500 dark:border-slate-700 dark:bg-slate-800/70 dark:hover:bg-indigo-500/10">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-300"><Icon size={17}/></span>
+        <span className="min-w-0 flex-1 text-[13px] font-semibold text-slate-800 dark:text-slate-100">{item.title}</span>
+        <ChevronRight size={14} className="shrink-0 text-slate-400"/>
       </button>
     );
   };
+
   return (
-    <section aria-label="Workspace overview" className="space-y-5 sm:space-y-6" data-testid="dashboard-launchpad">
-      <div className="rounded-3xl border border-indigo-100 dark:border-indigo-900/70 bg-gradient-to-br from-white via-indigo-50/70 to-slate-50 dark:from-slate-800 dark:via-indigo-950/30 dark:to-slate-900 px-5 py-6 sm:px-8 sm:py-7 overflow-hidden relative">
-        <div className="relative z-10 flex flex-col sm:flex-row sm:items-start justify-between gap-5">
-          <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 text-[11px] uppercase tracking-widest font-bold text-indigo-700 dark:text-indigo-300"><span className="h-2 w-2 bg-emerald-500 rounded-full"/> Your workspace</div>
-            <h1 className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-950 dark:text-white">Make your next move clear.</h1>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">Viewing <strong>{name}</strong>. Start with an action, check what needs attention, or open the deeper financial dashboard when you need it.</p>
+    <section aria-label="Workspace overview" data-testid="dashboard-launchpad" className="space-y-4 sm:space-y-5">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 dark:border-slate-700 dark:bg-slate-800/65">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="min-w-0">
+            <p className="max-w-full truncate text-[11px] font-semibold tracking-wide text-slate-500 dark:text-slate-400" title={name}>{name}</p>
+            <h1 className="mt-0.5 text-xl font-bold tracking-tight text-slate-900 dark:text-white">Your money</h1>
           </div>
-          <button type="button" onClick={onOpenDetails} className="shrink-0 self-start inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 dark:bg-indigo-500 text-white px-4 py-3 text-sm font-bold hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500">
-            Detailed dashboard <ChevronRight size={17}/>
-          </button>
+          <div className="inline-flex items-center rounded-lg bg-slate-100 p-0.5 dark:bg-slate-900" role="group" aria-label="Overview period">
+            <button type="button" onClick={() => setTimeFilter('month')} aria-pressed={timeFilter === 'month'} className={`rounded-md px-2.5 py-1.5 text-xs font-semibold ${timeFilter === 'month' ? 'bg-white text-indigo-700 shadow-sm dark:bg-slate-700 dark:text-indigo-200' : 'text-slate-500 dark:text-slate-400'}`}>Month</button>
+            <button type="button" onClick={() => setTimeFilter('all')} aria-pressed={timeFilter === 'all'} className={`rounded-md px-2.5 py-1.5 text-xs font-semibold ${timeFilter === 'all' ? 'bg-white text-indigo-700 shadow-sm dark:bg-slate-700 dark:text-indigo-200' : 'text-slate-500 dark:text-slate-400'}`}>All time</button>
+          </div>
         </div>
-        <div className="relative z-10 mt-6 grid grid-cols-1 sm:grid-cols-3 gap-2.5" aria-label={`Financial snapshot for ${timeFilter}`}>
-          {[
-            { title: 'Income', value: metrics.totalIncome, note: `Selected period: ${timeFilter}` },
-            { title: 'Expenses', value: metrics.totalExpenses, note: `Selected period: ${timeFilter}` },
-            { title: 'Cash flow', value: metrics.cashflow, note: 'Income minus outgoing cash' }
-          ].map(item => (
-            <div key={item.title} className="min-w-0 rounded-xl bg-white/90 dark:bg-slate-800/80 border border-white dark:border-slate-700/70 px-4 py-3 shadow-sm">
-              <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">{item.title}</div>
-              <div className="mt-1 text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white min-w-0 break-words"><MoneyDisplay amount={item.value} symbol={symbol}/></div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{item.note}</div>
-            </div>
-          ))}
+        <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500" aria-live="polite">Showing: {period}</p>
+        <div className="mt-3 rounded-xl border border-indigo-100 bg-indigo-50/60 p-3.5 dark:border-indigo-900/60 dark:bg-indigo-500/10">
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-300">Cash flow</p>
+          <p className={`mt-1 min-w-0 break-all text-[clamp(22px,5.7vw,32px)] font-extrabold leading-tight tracking-tight ${metrics.cashflow < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-950 dark:text-white'}`}><MoneyDisplay amount={metrics.cashflow} symbol={symbol}/></p>
+          <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">Money in minus money out</p>
+        </div>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <button type="button" onClick={() => navigate('income_statement:income')} className="min-w-0 rounded-xl border border-slate-200 p-3 text-left hover:border-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500 dark:border-slate-700" aria-label="View income">
+            <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400"><ArrowDownLeft className="text-emerald-500" size={14}/> Income</span>
+            <span className="mt-1 block min-w-0 break-all text-[clamp(14px,3.5vw,19px)] font-bold leading-snug text-slate-900 dark:text-white"><MoneyDisplay amount={metrics.totalIncome} symbol={symbol}/></span>
+          </button>
+          <button type="button" onClick={() => navigate('income_statement:expense')} className="min-w-0 rounded-xl border border-slate-200 p-3 text-left hover:border-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500 dark:border-slate-700" aria-label="View expenses">
+            <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400"><ArrowUpRight className="text-amber-500" size={14}/> Expenses</span>
+            <span className="mt-1 block min-w-0 break-all text-[clamp(14px,3.5vw,19px)] font-bold leading-snug text-slate-900 dark:text-white"><MoneyDisplay amount={metrics.totalExpenses} symbol={symbol}/></span>
+          </button>
         </div>
       </div>
 
       {(pending > 0 || alerts > 0) && (
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 rounded-2xl border border-amber-200 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/20 p-4" aria-live="polite">
-          <Bell size={20} className="text-amber-600 shrink-0"/>
-          <div className="flex-1 text-sm text-slate-700 dark:text-slate-200"><strong>Needs attention.</strong> {pending > 0 && `${pending} pending submission${pending === 1 ? '' : 's'}. `}{alerts > 0 && `${alerts} unread notification${alerts === 1 ? '' : 's'}.`}</div>
-          <div className="flex flex-wrap gap-2">
-            {pending > 0 && <button type="button" onClick={() => onOpenDetails('approvals')} className="rounded-lg bg-amber-600 text-white font-semibold text-xs px-3 py-2 hover:bg-amber-700">Review submissions</button>}
-            {alerts > 0 && <button type="button" onClick={() => navigate('notifications')} className="rounded-lg bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-800 font-semibold text-xs px-3 py-2 hover:border-amber-500">Notifications</button>}
-          </div>
+        <div aria-live="polite" className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-800/80 dark:bg-amber-900/20">
+          <p className="flex items-center gap-2 text-xs font-semibold text-amber-800 dark:text-amber-200"><Bell size={16}/>{pending > 0 ? `${pending} pending approval${pending === 1 ? '' : 's'}` : `${alerts} unread notification${alerts === 1 ? '' : 's'}`}</p>
+          <button type="button" onClick={() => pending > 0 ? onOpenDetails('approvals') : navigate('notifications')} className="inline-flex items-center gap-1 text-xs font-bold text-indigo-700 underline underline-offset-2 dark:text-indigo-300">Review <ChevronRight size={14}/></button>
+          {pending > 0 && alerts > 0 && <button type="button" onClick={() => navigate('notifications')} className="text-xs font-semibold text-slate-600 underline dark:text-slate-300">{alerts} notification{alerts === 1 ? '' : 's'}</button>}
         </div>
       )}
+
       <div>
-        <div className="flex items-baseline justify-between mb-3 gap-2"><div><h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white">Quick actions</h2><p className="text-sm text-slate-500 dark:text-slate-400 mt-1">The things you are most likely to do today.</p></div></div>
-        {viewer ? <p className="p-3 mb-3 rounded-lg text-sm bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"><ShieldCheck size={15} className="inline mr-1"/> This profile is view-only. Recording actions are unavailable.</p> : null}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">{mainActions.map(item => shortCut(item, true))}</div>
+        <h2 className="mb-2 text-sm font-bold text-slate-900 dark:text-white">Quick actions</h2>
+        {viewer && <p className="mb-2 flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400"><ShieldCheck size={14}/> View-only access</p>}
+        <div className="grid grid-cols-3 gap-2">
+          {quickActions.map(action => {
+            const Icon = action.icon;
+            return <button key={action.route} type="button" disabled={viewer} onClick={() => navigate(action.route)} className="flex min-h-[88px] min-w-0 flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-1.5 py-2.5 text-center text-slate-900 transition-colors hover:border-indigo-400 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800/70 dark:text-white dark:hover:bg-indigo-500/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-300"><Icon size={19}/></span>
+              <span className="text-[11px] font-semibold leading-tight sm:text-xs">{action.title}</span>
+            </button>;
+          })}
+        </div>
       </div>
+
       <div>
-        <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white">Explore your finances</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-3">Each destination takes you to the feature that does the work.</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">{manage.filter(item => !item.restricted).map(item => shortCut(item))}</div>
+        <div className="mb-2 flex items-center justify-between gap-2"><h2 className="text-sm font-bold text-slate-900 dark:text-white">Explore</h2><button type="button" onClick={() => setAllFeaturesOpen(o => !o)} aria-expanded={allFeaturesOpen} aria-controls="all-overview-features" className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 dark:text-indigo-300">{allFeaturesOpen ? 'Show less' : 'All features'} <ChevronDown size={15} className={`transition-transform ${allFeaturesOpen ? 'rotate-180' : ''}`}/></button></div>
+        <div className="grid grid-cols-1 min-[370px]:grid-cols-2 gap-2">
+          {primary.filter(x => !x.restricted).map(tile)}
+          <button type="button" onClick={() => onOpenDetails()} className="flex min-w-0 items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-3 py-3 text-left transition-colors hover:border-indigo-400 hover:bg-indigo-50/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500 dark:border-slate-700 dark:bg-slate-800/70 dark:hover:bg-indigo-500/10">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-300"><LayoutDashboard size={17}/></span><span className="min-w-0 flex-1 text-[13px] font-semibold text-slate-800 dark:text-slate-100">Full dashboard</span><ChevronRight size={14} className="shrink-0 text-slate-400"/>
+          </button>
+        </div>
+        {allFeaturesOpen && <div id="all-overview-features" className="mt-2 grid grid-cols-1 min-[370px]:grid-cols-2 gap-2">{secondary.filter(x => !x.restricted).map(tile)}</div>}
+        {!allFeaturesOpen && <p className="mt-2 flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400"><CircleHelp size={12}/> Other features are in “All features” or the menu.</p>}
       </div>
-      {!financeStaff && <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <button type="button" disabled={financeStaff} onClick={() => navigate('goals')} className="flex items-center gap-4 text-left p-4 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-indigo-400 bg-white dark:bg-slate-800/60 disabled:opacity-50">
-          <span className="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 flex items-center justify-center"><Target size={21}/></span>
-          <span className="flex-1"><strong className="text-sm block text-slate-900 dark:text-white">{goals} goal{goals === 1 ? '' : 's'} in this profile</strong><span className="text-xs text-slate-500 dark:text-slate-400">See progress and next milestones</span></span><ChevronRight size={17}/>
-        </button>
-        <button type="button" onClick={() => navigate('learning')} disabled={financeStaff} className="flex items-center gap-4 text-left p-4 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-indigo-400 bg-white dark:bg-slate-800/60 disabled:opacity-50">
-          <span className="w-11 h-11 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 flex items-center justify-center"><BookOpen size={21}/></span>
-          <span className="flex-1"><strong className="text-sm block text-slate-900 dark:text-white">Learn the system</strong><span className="text-xs text-slate-500 dark:text-slate-400">Financial concepts explained simply</span></span><ChevronRight size={17}/>
-        </button>
-      </div>}
-      <p className="text-xs text-center text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1"><HelpCircle size={13}/> Looking for the old charts and models? Use <button type="button" onClick={onOpenDetails} className="font-bold text-indigo-600 dark:text-indigo-300 underline underline-offset-2">Detailed dashboard</button>.</p>
+      {!financeStaff && goals > 0 && <button type="button" onClick={() => navigate('goals')} className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-300"><span className="flex items-center gap-2"><Target size={15}/>{goals} saved goal{goals === 1 ? '' : 's'}</span><ChevronRight size={15}/></button>}
     </section>
   );
 }
